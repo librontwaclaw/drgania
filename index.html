@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorium Ruchu Drgającego - Pomiar Krokowy</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 20px;
+        }
+        .intro {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            border-left: 4px solid #2ecc71;
+            padding-left: 10px;
+        }
+        .simulation-space {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .canvas-container {
+            position: relative;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        label {
+            font-weight: bold;
+            font-size: 13px;
+            color: #34495e;
+        }
+        .value-display {
+            font-weight: normal;
+            color: #2ecc71;
+            float: right;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .btn-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-start { flex: 1; min-width: 70px; background-color: #34495e; color: white; }
+        .btn-pause { flex: 1; min-width: 70px; background-color: #f1c40f; color: white; }
+        .btn-reset { flex: 1; min-width: 70px; background-color: #e74c3c; color: white; }
+        .btn-step { 
+            width: 100%; 
+            background-color: #2ecc71; 
+            color: white; 
+            font-size: 15px; 
+            padding: 12px;
+            margin-top: 5px;
+            box-shadow: 0 3px 6px rgba(46, 204, 113, 0.3);
+        }
+        .btn-step:hover { background-color: #27ae60; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ruch Drgający - Pomiar Krokowy</h1>
+    <div class="intro">
+        <strong>Instrukcja dla ucznia:</strong> Używaj zielonego przycisku <strong>"Krok o +0,1 s"</strong>, aby precyzyjnie przesuwać czas. Odczytaj wychylenie dla każdego kroku i zapisz dane w tabeli.
+    </div>
+
+    <div class="simulation-space">
+        <div class="canvas-container">
+            <canvas id="simCanvas" width="350" height="500"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Amplituda (A): <span id="ampVal" class="value-display">20 cm</span></label>
+                <input type="range" id="amplitude" min="20" max="60" step="1" value="20">
+            </div>
+            <div class="control-group">
+                <label>Okres (T): <span id="periodVal" class="value-display">2.0 s</span></label>
+                <input type="range" id="period" min="2.0" max="6.0" step="0.1" value="2.0">
+            </div>
+            
+            <button class="btn-step" id="stepBtn">🦶 Krok o +0,1 s</button>
+            
+            <div class="btn-group">
+                <button class="btn-start" id="startBtn">▶ Płyń</button>
+                <button class="btn-pause" id="pauseBtn">⏸ Pauza</button>
+                <button class="btn-reset" id="resetBtn">🔄 Reset</button>
+            </div>
+        </div>
+    </div>
+	<center>&copy Wacław Libront * Bobowa 2026</center>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const amplitudeInput = document.getElementById('amplitude');
+    const periodInput = document.getElementById('period');
+    const ampVal = document.getElementById('ampVal');
+    const periodVal = document.getElementById('periodVal');
+    
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const stepBtn = document.getElementById('stepBtn');
+    
+    let isRunning = false;
+    let t = 0; 
+    let lastTime = 0;
+
+    let A = parseFloat(amplitudeInput.value); 
+    let T = parseFloat(periodInput.value);
+
+    const SCALE = 3.5; 
+    const centerX = canvas.width / 2 - 20; 
+    const centerY = canvas.height / 2 + 20; 
+
+    amplitudeInput.addEventListener('input', () => {
+        A = parseFloat(amplitudeInput.value);
+        ampVal.textContent = A + ' cm';
+        draw();
+    });
+
+    periodInput.addEventListener('input', () => {
+        T = parseFloat(periodInput.value);
+        periodVal.textContent = T.toFixed(1) + ' s';
+        draw();
+    });
+
+    startBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            isRunning = true;
+            lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }
+    });
+
+    pauseBtn.addEventListener('click', () => { isRunning = false; });
+
+    resetBtn.addEventListener('click', () => {
+        isRunning = false;
+        t = 0;
+        draw();
+    });
+
+    // --- KLUCZOWA FUNKCJA KROKOWA ---
+    stepBtn.addEventListener('click', () => {
+        isRunning = false; // Zatrzymaj płynną animację, jeśli trwała
+        t += 0.1;          // Dodaj dokładnie 0.1 sekundy
+        draw();
+    });
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let omega = (2 * Math.PI) / T;
+        let currentY_cm = A * Math.sin(omega * t);
+        let pixelY = centerY - currentY_cm * SCALE;
+
+        // --- CYFROWY STOPER ---
+        ctx.fillStyle = '#ffffff'; 
+        ctx.font = 'bold 24px monospace';
+        ctx.textAlign = 'left';
+        // Zaokrąglenie fixuje błędy zmiennoprzecinkowe JS (np. 0.3000000004 s)
+        ctx.fillText(`t = ${t.toFixed(1)} s`, 20, 40);
+
+        // Oś główna pionowa
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - 65 * SCALE);
+        ctx.lineTo(centerX, centerY + 65 * SCALE);
+        ctx.stroke();
+
+        // --- PIONOWA PODZIAŁKA CENTYMETROWA ---
+        ctx.lineWidth = 1;
+        ctx.font = '10px monospace';
+        ctx.textBaseline = 'middle';
+        
+        for (let i = -60; i <= 60; i += 2) {
+            let tickY = centerY - i * SCALE;
+            let tickWidth = (i % 10 === 0) ? 15 : ((i % 5 === 0) ? 10 : 5);
+            
+            ctx.strokeStyle = (i === 0) ? '#e74c3c' : '#7f8c8d';
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX - tickWidth / 2, tickY);
+            ctx.lineTo(centerX + tickWidth / 2, tickY);
+            ctx.stroke();
+            
+            if (i % 10 === 0) {
+                ctx.fillStyle = (i === 0) ? '#e74c3c' : '#bdc3c7';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${i >= 0 ? '+' : ''}${i}`, centerX + 15, tickY);
+            }
+        }
+
+        ctx.fillStyle = '#7f8c8d';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText("[cm]", centerX, centerY - 69 * SCALE);
+
+        // --- BARDZO CIENKI PROSTOKĄT CELOWNICZY ---
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(centerX - 30, pixelY - 1.5, 80, 3);
+    }
+
+    function animate(now) {
+        if (!isRunning) return;
+        let dt = (now - lastTime) / 1000;
+        if (dt > 0.1) dt = 0.1; 
+        
+        t += dt;
+        lastTime = now;
+
+        draw();
+        requestAnimationFrame(animate);
+    }
+
+    draw();
+</script>
+
+</body>
+</html>
