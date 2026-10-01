@@ -136,10 +136,10 @@
                 <input type="range" id="period" min="2.0" max="6.0" step="0.1" value="2.0">
             </div>
             
-            <button class="btn-step" id="stepBtn">🦶 Krok o +0,1 s</button>
+            <button class="btn-step" id="stepBtn">Krok +0,1 s</button>
             
             <div class="btn-group">
-                <button class="btn-start" id="startBtn">▶ Płyń</button>
+                <button class="btn-start" id="startBtn">▶ Start</button>
                 <button class="btn-pause" id="pauseBtn">⏸ Pauza</button>
                 <button class="btn-reset" id="resetBtn">🔄 Reset</button>
             </div>
@@ -232,12 +232,12 @@
 
         // --- PIONOWA PODZIAŁKA CENTYMETROWA ---
         ctx.lineWidth = 1;
-        ctx.font = '10px monospace';
+        ctx.font = '16px monospace';
         ctx.textBaseline = 'middle';
         
         for (let i = -60; i <= 60; i += 2) {
             let tickY = centerY - i * SCALE;
-            let tickWidth = (i % 10 === 0) ? 15 : ((i % 5 === 0) ? 10 : 5);
+            let tickWidth = (i % 10 === 0) ? 25 : ((i % 5 === 0) ? 10 : 10);
             
             ctx.strokeStyle = (i === 0) ? '#e74c3c' : '#7f8c8d';
             
@@ -259,8 +259,17 @@
         ctx.fillText("[cm]", centerX, centerY - 69 * SCALE);
 
         // --- BARDZO CIENKI PROSTOKĄT CELOWNICZY ---
-        ctx.fillStyle = '#00ff00';
+        ctx.fillStyle = '#3498db';
         ctx.fillRect(centerX - 30, pixelY - 1.5, 80, 3);
+		
+		// --- DRGAJĄCY PUNKT ---
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath();
+        ctx.arc(centerX-40, pixelY, 15, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 
     function animate(now) {
